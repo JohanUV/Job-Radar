@@ -1,0 +1,150 @@
+{
+  "name": "radar-remotive",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "3ec76448-ba45-4143-86a9-05824c03f79a",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://remotive.com/api/remote-jobs?search=django&limit=10",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "499edcf2-8850-4141-862e-a00c50a3c049",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst total = items.length;\nconst top = items.slice(0, 5);\n\nlet texto = `Radar de empleos — ${total} vacantes encontradas\\n\\n`;\n\nfor (const it of top) {\n  const j = it.json;\n  texto += `${j.titulo}\\n${j.empresa} — ${j.ubicacion}\\n${j.url}\\n\\n`;\n}\n\nif (total > top.length) {\n  texto += `y ${total - top.length} más en el listado.`;\n}\n\nreturn [{ json: { mensaje: texto } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        0
+      ],
+      "id": "08abb1fd-888f-43e4-8866-82af1be6b5f8",
+      "name": "Armar Mensaje"
+    },
+    {
+      "parameters": {
+        "jsCode": "const jobs = $input.first().json.jobs || [];\n\nreturn jobs.map(j => ({\n  json: {\n    titulo: j.title,\n    empresa: j.company_name,\n    descripcion: (j.description || '').replace(/<[^>]*>/g, '').trim(),\n    ubicacion: j.candidate_required_location || 'No especificada',\n    tipo: j.job_type || null,\n    categoria: j.category || null,\n    url: j.url,\n    fuente: 'remotive',\n    fecha_publicacion: j.publication_date,\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "50ff9708-acdb-40fe-b2ca-3291070482c7",
+      "name": "Normalizar Vacantes"
+    },
+    {
+      "parameters": {
+        "chatId": "1792767565",
+        "text": "={{ $json.mensaje }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        928,
+        0
+      ],
+      "id": "594b7f52-358c-4f85-a3cb-2ecb02cda296",
+      "name": "Send a text message",
+      "webhookId": "33b03a11-6f37-4d7d-97fd-9404850b2c42",
+      "credentials": {
+        "telegramApi": {
+          "id": "zE1gvwzk0xvreShF",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Vacantes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Vacantes": {
+      "main": [
+        [
+          {
+            "node": "Armar Mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar Mensaje": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "17284ac5-c07e-4f0b-8ebc-bd7a800f094e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7f363f4874e757cfa9f825921d3ca1721b35e00416de57e90b18bea7eaf1892d"
+  },
+  "nodeGroups": [],
+  "id": "ryvkF5k2eDcSNwEy",
+  "tags": []
+}
