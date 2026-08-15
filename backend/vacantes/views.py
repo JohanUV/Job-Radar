@@ -1,4 +1,5 @@
 import hashlib
+import json
 import os
 
 from rest_framework import status
@@ -8,6 +9,18 @@ from rest_framework.views import APIView
 
 from .models import Vacante
 from .serializers import VacanteIngestSerializer
+
+
+def _extraer_lista(data):
+    if isinstance(data, str):
+        data = json.loads(data)
+    if isinstance(data, dict):
+        if "vacantes" in data:
+            return _extraer_lista(data["vacantes"])
+        return [data]
+    if isinstance(data, list):
+        return data
+    return []
 
 
 class IngestVacantesView(APIView):
@@ -22,7 +35,20 @@ class IngestVacantesView(APIView):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
-        datos = request.data if isinstance(request.data, list) else [request.data]
+        try:
+            crudo = request.body.decode("utf-8").strip()
+            datos = _extraer_lista(json.loads(crudo))
+        except Exception:
+            return Response(
+                {"detalle": "El cuerpo no es JSON valido"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not datos:
+            return Response(
+                {"detalle": "No se recibieron vacantes"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         serializer = VacanteIngestSerializer(data=datos, many=True)
         serializer.is_valid(raise_exception=True)
