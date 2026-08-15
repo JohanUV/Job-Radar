@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Vacante
-from .serializers import VacanteIngestSerializer
+from .serializers import VacanteIngestSerializer, VacanteSerializer
 
 
 def _extraer_lista(data):
@@ -68,3 +68,36 @@ class IngestVacantesView(APIView):
             {"recibidas": len(datos), "creadas": creadas, "duplicadas": duplicadas},
             status=status.HTTP_201_CREATED,
         )
+
+
+class VacantesListView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        qs = Vacante.objects.all()
+
+        q = request.query_params.get("q")
+        if q:
+            qs = qs.filter(titulo__icontains=q) | qs.filter(empresa__icontains=q)
+
+        fuente = request.query_params.get("fuente")
+        if fuente:
+            qs = qs.filter(fuente=fuente)
+
+        try:
+            pagina = max(1, int(request.query_params.get("pagina", 1)))
+        except ValueError:
+            pagina = 1
+
+        tam = 20
+        total = qs.count()
+        inicio = (pagina - 1) * tam
+        resultados = qs[inicio:inicio + tam]
+
+        return Response({
+            "total": total,
+            "pagina": pagina,
+            "paginas": (total + tam - 1) // tam,
+            "resultados": VacanteSerializer(resultados, many=True).data,
+        })
