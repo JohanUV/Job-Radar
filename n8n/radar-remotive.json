@@ -15,21 +15,21 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
       "position": [
-        -176,
-        0
+        -192,
+        112
       ],
       "id": "3ec76448-ba45-4143-86a9-05824c03f79a",
       "name": "Schedule Trigger"
     },
     {
       "parameters": {
-        "jsCode": "const resumen = $input.first().json;\nconst vacantes = $('Normalizar Vacantes').all().map(i => i.json);\n\nif (!resumen.creadas) {\n  return [{ json: { mensaje: `Radar: sin vacantes nuevas (${resumen.duplicadas} ya registradas).` } }];\n}\n\nconst nuevas = vacantes.slice(0, resumen.creadas);\nlet texto = `Radar de empleos — ${resumen.creadas} vacantes nuevas\\n\\n`;\n\nfor (const v of nuevas.slice(0, 5)) {\n  texto += `${v.titulo}\\n${v.empresa} — ${v.ubicacion}\\n${v.url}\\n\\n`;\n}\n\nif (resumen.creadas > 5) {\n  texto += `y ${resumen.creadas - 5} más en el sistema.`;\n}\n\nreturn [{ json: { mensaje: texto } }];"
+        "jsCode": "const resumen = $input.first().json;\nconst vacantes = $('Merge').all().map(i => i.json);\n\nif (!resumen.creadas) {\n  return [{ json: { mensaje: `Radar: sin vacantes nuevas (${resumen.duplicadas} ya registradas).` } }];\n}\n\nconst nuevas = vacantes.slice(0, resumen.creadas);\nlet texto = `Radar de empleos — ${resumen.creadas} vacantes nuevas\\n\\n`;\n\nfor (const v of nuevas.slice(0, 5)) {\n  texto += `${v.titulo}\\n${v.empresa} — ${v.ubicacion}\\n${v.url}\\n\\n`;\n}\n\nif (resumen.creadas > 5) {\n  texto += `y ${resumen.creadas - 5} más en el sistema.`;\n}\n\nreturn [{ json: { mensaje: texto } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        848,
-        0
+        992,
+        144
       ],
       "id": "08abb1fd-888f-43e4-8866-82af1be6b5f8",
       "name": "Armar Mensaje"
@@ -58,8 +58,8 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1040,
-        0
+        1184,
+        144
       ],
       "id": "594b7f52-358c-4f85-a3cb-2ecb02cda296",
       "name": "Send a text message",
@@ -78,8 +78,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        464,
-        0
+        608,
+        144
       ],
       "id": "ce1275bd-dd7b-429e-bec8-ef8c4f942bbf",
       "name": "Empaquetar"
@@ -110,8 +110,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
-        656,
-        0
+        800,
+        144
       ],
       "id": "bf3fddff-560c-4576-8ad6-3cc6e4217375",
       "name": "Enviar a API"
@@ -129,6 +129,44 @@
       ],
       "id": "499edcf2-8850-4141-862e-a00c50a3c049",
       "name": "Solicitud HTTP"
+    },
+    {
+      "parameters": {
+        "url": "https://www.arbeitnow.com/api/job-board-api",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        64,
+        224
+      ],
+      "id": "411c593f-ca2a-4eb6-bfa3-6c5167d7768f",
+      "name": "HTTP Arbeitnow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const jobs = $input.first().json.data || [];\n\nreturn jobs.slice(0, 20).map(j => ({\n  json: {\n    titulo: j.title,\n    empresa: j.company_name,\n    descripcion: (j.description || '').replace(/<[^>]*>/g, '').trim().slice(0, 5000),\n    ubicacion: j.location || 'No especificada',\n    tipo: j.job_types?.[0] || null,\n    categoria: j.tags?.[0] || null,\n    url: j.url,\n    fuente: 'arbeitnow',\n    fecha_publicacion: j.created_at ? new Date(j.created_at * 1000).toISOString() : null,\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        224
+      ],
+      "id": "ef5bef04-23d2-4d69-aa9e-5438865f6ff3",
+      "name": "Normalizar Arbeitnow"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        448,
+        144
+      ],
+      "id": "2a522f7e-0b23-4c2f-a866-3e2e4e719393",
+      "name": "Merge"
     }
   ],
   "pinData": {},
@@ -140,6 +178,11 @@
             "node": "Solicitud HTTP",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "HTTP Arbeitnow",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -148,7 +191,7 @@
       "main": [
         [
           {
-            "node": "Empaquetar",
+            "node": "Merge",
             "type": "main",
             "index": 0
           }
@@ -198,6 +241,39 @@
           }
         ]
       ]
+    },
+    "HTTP Arbeitnow": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Arbeitnow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Arbeitnow": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Empaquetar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -206,7 +282,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "f3190164-a2e1-4fb0-adb1-84d539d8a55a",
+  "versionId": "05492a1c-e0a5-427a-aefd-5f42bb7b3904",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "7f363f4874e757cfa9f825921d3ca1721b35e00416de57e90b18bea7eaf1892d"
