@@ -16,7 +16,7 @@
       "typeVersion": 1.3,
       "position": [
         -192,
-        112
+        224
       ],
       "id": "3ec76448-ba45-4143-86a9-05824c03f79a",
       "name": "Schedule Trigger"
@@ -28,8 +28,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        992,
-        144
+        1040,
+        224
       ],
       "id": "08abb1fd-888f-43e4-8866-82af1be6b5f8",
       "name": "Armar Mensaje"
@@ -58,8 +58,8 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1184,
-        144
+        1232,
+        224
       ],
       "id": "594b7f52-358c-4f85-a3cb-2ecb02cda296",
       "name": "Send a text message",
@@ -78,8 +78,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        608,
-        144
+        656,
+        224
       ],
       "id": "ce1275bd-dd7b-429e-bec8-ef8c4f942bbf",
       "name": "Empaquetar"
@@ -93,7 +93,7 @@
           "parameters": [
             {
               "name": "X-API-Key",
-              "value": "85cf0f36f6bcb83e9d660ff625377ef24e850406571cb0fc99a9bb8802cc72cc"
+              "value": "API_KEY_AQUI"
             },
             {
               "name": "Content-Type",
@@ -110,8 +110,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
-        800,
-        144
+        848,
+        224
       ],
       "id": "bf3fddff-560c-4576-8ad6-3cc6e4217375",
       "name": "Enviar a API"
@@ -138,7 +138,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
-        64,
+        48,
         224
       ],
       "id": "411c593f-ca2a-4eb6-bfa3-6c5167d7768f",
@@ -146,27 +146,56 @@
     },
     {
       "parameters": {
-        "jsCode": "const jobs = $input.first().json.data || [];\n\nreturn jobs.slice(0, 20).map(j => ({\n  json: {\n    titulo: j.title,\n    empresa: j.company_name,\n    descripcion: (j.description || '').replace(/<[^>]*>/g, '').trim().slice(0, 5000),\n    ubicacion: j.location || 'No especificada',\n    tipo: j.job_types?.[0] || null,\n    categoria: j.tags?.[0] || null,\n    url: j.url,\n    fuente: 'arbeitnow',\n    fecha_publicacion: j.created_at ? new Date(j.created_at * 1000).toISOString() : null,\n  }\n}));"
+        "jsCode": "const jobs = $input.first().json.data || [];\n\nconst filtrados = jobs.filter(j =>\n  j.remote === true &&\n  /developer|engineer|software|data|security|devops|analyst|IT|cyber/i.test(\n    (j.title || '') + ' ' + (j.tags || []).join(' ')\n  )\n);\n\nreturn filtrados.slice(0, 20).map(j => ({\n  json: {\n    titulo: j.title,\n    empresa: j.company_name,\n    descripcion: (j.description || '').replace(/<[^>]*>/g, '').trim().slice(0, 5000),\n    ubicacion: j.location || 'No especificada',\n    tipo: j.job_types?.[0] || null,\n    categoria: j.tags?.[0] || null,\n    url: j.url,\n    fuente: 'arbeitnow',\n    fecha_publicacion: j.created_at ? new Date(j.created_at * 1000).toISOString() : null,\n  }\n}));"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        272,
+        256,
         224
       ],
       "id": "ef5bef04-23d2-4d69-aa9e-5438865f6ff3",
       "name": "Normalizar Arbeitnow"
     },
     {
-      "parameters": {},
+      "parameters": {
+        "numberInputs": 3
+      },
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        448,
-        144
+        496,
+        208
       ],
       "id": "2a522f7e-0b23-4c2f-a866-3e2e4e719393",
       "name": "Merge"
+    },
+    {
+      "parameters": {
+        "url": "https://remoteok.com/api",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        48,
+        416
+      ],
+      "id": "b2c4909a-d6e6-46a3-8689-87543c57a464",
+      "name": "HTTP RemoteOK"
+    },
+    {
+      "parameters": {
+        "jsCode": "let items = $input.all().map(i => i.json);\n\nif (items.length === 1 && Array.isArray(items[0].data)) {\n  items = items[0].data;\n}\n\nconst jobs = items.filter(j => j && j.id && j.position);\n\nreturn jobs.slice(0, 20).map(j => ({\n  json: {\n    titulo: j.position,\n    empresa: j.company,\n    descripcion: (j.description || '').replace(/<[^>]*>/g, '').trim().slice(0, 5000),\n    ubicacion: j.location || 'Remoto',\n    tipo: 'remoto',\n    categoria: j.tags?.[0] || null,\n    url: j.url,\n    fuente: 'remoteok',\n    fecha_publicacion: j.date || null,\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        416
+      ],
+      "id": "12f6c8ab-e222-4d9a-9dfa-792b212f0b8d",
+      "name": "Normalizar RemoteOK"
     }
   ],
   "pinData": {},
@@ -181,6 +210,11 @@
           },
           {
             "node": "HTTP Arbeitnow",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP RemoteOK",
             "type": "main",
             "index": 0
           }
@@ -274,6 +308,28 @@
           }
         ]
       ]
+    },
+    "HTTP RemoteOK": {
+      "main": [
+        [
+          {
+            "node": "Normalizar RemoteOK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar RemoteOK": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -282,7 +338,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "05492a1c-e0a5-427a-aefd-5f42bb7b3904",
+  "versionId": "6e7de36f-b1ac-40dc-9736-be64b1ab0f0a",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "7f363f4874e757cfa9f825921d3ca1721b35e00416de57e90b18bea7eaf1892d"

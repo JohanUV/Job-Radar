@@ -1,0 +1,194 @@
+{
+  "name": "Evaluador-CV",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6,
+              "triggerAtMinute": 30
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "547d1406-7821-42ad-8126-a95dcc9e870f",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "http://172.17.0.1:8000/api/perfil/1792767565/pendientes/?limite=4",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "API_KEY_AQUI"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "8f73aeb3-0ddd-42ee-85d8-e89989374ff0",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst cv = d.texto_cv;\n\nreturn (d.pendientes || []).map(v => ({\n  json: {\n    perfil: d.perfil_id,\n    vacante: v.id,\n    titulo: v.titulo,\n    prompt: `Eres un asistente de busqueda de empleo. Compara este CV con esta vacante.\n\nCV:\n${cv}\n\nVACANTE:\nTitulo: ${v.titulo}\nEmpresa: ${v.empresa}\nDescripcion: ${(v.descripcion || '').slice(0, 3000)}\n\nResponde UNICAMENTE con un objeto JSON valido, sin markdown, sin backticks, con esta forma exacta:\n{\"puntuacion\": <numero entero de 0 a 100>, \"razones\": [\"razon 1\", \"razon 2\", \"razon 3\"]}\n\nLa puntuacion mide que tanto encaja el perfil con la vacante. Las razones deben ser cortas y en espanol.`\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "192315d3-cd42-4ef0-86ff-e618637b4d28",
+      "name": "Preparar Prompts"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=PEGA_TU_CLAVE_GEMINI_AQUI",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ contents: [{ parts: [{ text: $json.prompt }] }] }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        672,
+        0
+      ],
+      "id": "b20e30c0-e0fa-4fe5-b7a3-ec4c56524bd8",
+      "name": "Gemini",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "const prep = $('Preparar Prompts').all().map(i => i.json);\nconst evaluaciones = [];\n\n$input.all().forEach((item, idx) => {\n  const texto = item.json?.candidates?.[0]?.content?.parts?.[0]?.text || '';\n  const limpio = texto.replace(/```json/g, '').replace(/```/g, '').trim();\n  try {\n    const r = JSON.parse(limpio);\n    evaluaciones.push({\n      perfil: prep[idx].perfil,\n      vacante: prep[idx].vacante,\n      puntuacion: r.puntuacion,\n      razones: r.razones || [],\n      modelo: 'gemini-2.5-flash',\n    });\n  } catch (e) {\n    // respuesta no parseable: se omite en vez de romper el flujo\n  }\n});\n\nreturn [{ json: { evaluaciones, total: evaluaciones.length } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        0
+      ],
+      "id": "c3a594a1-426a-4d3b-8553-cb900f3077c7",
+      "name": "Parsear Respuestas"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://172.17.0.1:8000/api/evaluaciones/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "API_KEY_AQUI"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ evaluaciones: $json.evaluaciones }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1088,
+        0
+      ],
+      "id": "cba2a452-67f5-476e-830e-8ff9072dc900",
+      "name": "Guardar evaluaciones"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Preparar Prompts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Prompts": {
+      "main": [
+        [
+          {
+            "node": "Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini": {
+      "main": [
+        [
+          {
+            "node": "Parsear Respuestas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear Respuestas": {
+      "main": [
+        [
+          {
+            "node": "Guardar evaluaciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "8b2efc04-4b36-449b-bdb7-de1f1b42b28a",
+  "meta": {
+    "instanceId": "7f363f4874e757cfa9f825921d3ca1721b35e00416de57e90b18bea7eaf1892d"
+  },
+  "nodeGroups": [],
+  "id": "4SJkrAmKMtaBApjZ",
+  "tags": []
+}
