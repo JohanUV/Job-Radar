@@ -9,3 +9,8 @@ export async function obtenerVacantes({ pagina = 1, q = "", fuente = "" } = {}) 
   if (!res.ok) throw new Error(`Error ${res.status}`);
   return res.json();
 }
+export async function obtenerVacante(id) {
+  const res = await fetch(`${BASE}/vacantes/${id}/`);
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}

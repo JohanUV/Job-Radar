@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { obtenerVacantes } from "./api";
 import "./App.css";
+import DetalleVacante from "./DetalleVacante";
 
 export default function App() {
   const [datos, setDatos] = useState(null);
@@ -10,6 +11,7 @@ export default function App() {
   const [q, setQ] = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [fuente, setFuente] = useState("");
+  const [seleccionada, setSeleccionada] = useState(null);
 
   useEffect(() => {
     setCargando(true);
@@ -55,16 +57,13 @@ export default function App() {
         <>
           <ul className="lista">
             {datos.resultados.map((v) => (
-              <li key={v.id} className="tarjeta">
-                <h2>{v.titulo}</h2>
-                <p className="empresa">{v.empresa}</p>
-                <p className="meta">
-                  {v.ubicacion} · via {v.fuente}
-                </p>
-                <a href={v.url} target="_blank" rel="noreferrer">
-                  Ver oferta original
-                </a>
-              </li>
+                    <li key={v.id} className="tarjeta" onClick={() => setSeleccionada(v.id)}>
+        <h2>{v.titulo}</h2>
+        <p className="empresa">{v.empresa}</p>
+        <p className="meta">
+          {v.ubicacion} · via {v.fuente}
+        </p>
+      </li>
             ))}
           </ul>
 
@@ -84,6 +83,9 @@ export default function App() {
           </nav>
         </>
       )}
+      {seleccionada && (
+  <DetalleVacante id={seleccionada} onCerrar={() => setSeleccionada(null)} />
+)}
     </div>
   );
 }

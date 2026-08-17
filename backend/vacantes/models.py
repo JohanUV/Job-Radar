@@ -5,7 +5,11 @@ from django.db import models
 
 
 class PerfilBusqueda(models.Model):
-    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="perfiles")
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="perfiles", null=True, blank=True,
+    )
+    telegram_chat_id = models.CharField(max_length=40, unique=True, null=True, blank=True)
     nombre = models.CharField(max_length=120)
     palabras_clave = models.JSONField(default=list)
     ubicacion = models.CharField(max_length=120, blank=True)
@@ -14,7 +18,7 @@ class PerfilBusqueda(models.Model):
     creado = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.nombre} ({self.usuario})"
+        return self.nombre
 
 
 class Vacante(models.Model):
@@ -72,3 +76,20 @@ class HistorialEstado(models.Model):
 
     class Meta:
         ordering = ["-fecha"]
+
+
+class Evaluacion(models.Model):
+    vacante = models.ForeignKey(Vacante, on_delete=models.CASCADE, related_name="evaluaciones")
+    perfil = models.ForeignKey(PerfilBusqueda, on_delete=models.CASCADE, related_name="evaluaciones")
+    puntuacion = models.IntegerField()
+    razones = models.JSONField(default=list)
+    modelo = models.CharField(max_length=80, blank=True)
+    creada = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("vacante", "perfil")
+        ordering = ["-puntuacion"]
+
+    def __str__(self):
+        return f"{self.vacante.titulo}: {self.puntuacion}"
+        

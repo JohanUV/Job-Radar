@@ -42,3 +42,48 @@ header h1 { margin: 0 0 4px; font-size: 28px; }
 .paginacion { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 28px; font-size: 14px; }
 .aviso { color: #8b93a7; }
 .aviso.error { color: #ff7b7b; }
+.tarjeta { cursor: pointer; transition: border-color .15s; }
+.tarjeta:hover { border-color: #3d5afe; }
+
+.fondo {
+  position: fixed; inset: 0;
+  background: rgba(8, 9, 13, .75);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px; z-index: 10;
+}
+
+.panel {
+  background: #1a1d26;
+  border: 1px solid #2c3040;
+  border-radius: 12px;
+  padding: 28px;
+  max-width: 680px; width: 100%;
+  max-height: 82vh; overflow-y: auto;
+  position: relative;
+}
+
+.cerrar {
+  position: absolute; top: 14px; right: 16px;
+  background: none; border: none;
+  color: #767e94; font-size: 26px; line-height: 1;
+  cursor: pointer;
+}
+.cerrar:hover { color: #e6e8ee; }
+
+.panel h2 { margin: 0 0 6px; padding-right: 32px; font-size: 21px; }
+
+.postular {
+  display: inline-block;
+  margin: 14px 0 20px;
+  padding: 9px 18px;
+  background: #3d5afe; color: #fff;
+  border-radius: 8px; text-decoration: none;
+  font-size: 14px;
+}
+
+.descripcion {
+  border-top: 1px solid #262a36;
+  padding-top: 18px;
+  color: #c3c9db; font-size: 14px; line-height: 1.65;
+}
+.descripcion p { margin: 0 0 12px; }
