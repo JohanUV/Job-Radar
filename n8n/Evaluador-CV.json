@@ -24,13 +24,13 @@
     },
     {
       "parameters": {
-        "url": "http://172.17.0.1:8000/api/perfil/1792767565/pendientes/?limite=4",
+        "url": "http://172.17.0.1:8000/api/perfil/1792767565/pendientes/?limite=2",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "X-API-Key",
-              "value": "API_KEY_AQUI"
+              "value": "85cf0f36f6bcb83e9d660ff625377ef24e850406571cb0fc99a9bb8802cc72cc"
             }
           ]
         },
@@ -61,7 +61,9 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=PEGA_TU_CLAVE_GEMINI_AQUI",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
@@ -77,7 +79,13 @@
       "id": "b20e30c0-e0fa-4fe5-b7a3-ec4c56524bd8",
       "name": "Gemini",
       "retryOnFail": true,
-      "waitBetweenTries": 5000
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Txaz6WVBxdWG89NW",
+          "name": "Header Auth account"
+        }
+      }
     },
     {
       "parameters": {
@@ -101,7 +109,7 @@
           "parameters": [
             {
               "name": "X-API-Key",
-              "value": "API_KEY_AQUI"
+              "value": "85cf0f36f6bcb83e9d660ff625377ef24e850406571cb0fc99a9bb8802cc72cc"
             }
           ]
         },
@@ -182,9 +190,10 @@
   "active": true,
   "settings": {
     "executionOrder": "v1",
-    "binaryMode": "separate"
+    "binaryMode": "separate",
+    "availableInMCP": false
   },
-  "versionId": "8b2efc04-4b36-449b-bdb7-de1f1b42b28a",
+  "versionId": "775d7991-ab9c-46aa-bf1b-91390a8d8ea3",
   "meta": {
     "instanceId": "7f363f4874e757cfa9f825921d3ca1721b35e00416de57e90b18bea7eaf1892d"
   },
