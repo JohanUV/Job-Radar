@@ -100,8 +100,14 @@ Write endpoints require an `X-API-Key` header matching `INGEST_API_KEY`.
 
 ## Screenshots
 
-<!-- screenshot: vacancy listing with search and filters -->
-<!-- screenshot: kanban board with cards in several columns -->
+Vacancy listing with search and filters:
+
+![Vacancy listing](docs/listado.png)
+
+Kanban board for application tracking:
+
+![Kanban board](docs/tablero.png)
+
 <!-- screenshot: Telegram bot conversation -->
 
 ## Running it locally
