@@ -51,17 +51,18 @@ class Postulacion(models.Model):
         GUARDADA = "guardada", "Guardada"
         POSTULADA = "postulada", "Postulada"
         ENTREVISTA = "entrevista", "Entrevista"
-        CERRADA = "cerrada", "Cerrada"
+        OFERTA = "oferta", "Oferta"
+        RECHAZADA = "rechazada", "Rechazada"
 
-    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="postulaciones")
     vacante = models.ForeignKey(Vacante, on_delete=models.CASCADE, related_name="postulaciones")
+    perfil = models.ForeignKey(PerfilBusqueda, on_delete=models.CASCADE, related_name="postulaciones")
     estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.GUARDADA)
     notas = models.TextField(blank=True)
     creada = models.DateTimeField(auto_now_add=True)
     actualizada = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ("usuario", "vacante")
+        unique_together = ("vacante", "perfil")
         ordering = ["-actualizada"]
 
     def __str__(self):
@@ -92,4 +93,18 @@ class Evaluacion(models.Model):
 
     def __str__(self):
         return f"{self.vacante.titulo}: {self.puntuacion}"
-        
+
+class BorradorCarta(models.Model):
+    vacante = models.ForeignKey(Vacante, on_delete=models.CASCADE, related_name="cartas")
+    perfil = models.ForeignKey(PerfilBusqueda, on_delete=models.CASCADE, related_name="cartas")
+    texto = models.TextField()
+    modelo = models.CharField(max_length=80, blank=True)
+    creada = models.DateTimeField(auto_now_add=True)
+    actualizada = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("vacante", "perfil")
+        ordering = ["-creada"]
+
+    def __str__(self):
+        return f"Carta: {self.vacante.titulo}"

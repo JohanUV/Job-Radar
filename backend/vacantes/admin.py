@@ -19,7 +19,7 @@ class PerfilBusquedaAdmin(admin.ModelAdmin):
 
 @admin.register(Postulacion)
 class PostulacionAdmin(admin.ModelAdmin):
-    list_display = ("vacante", "usuario", "estado", "actualizada")
+    list_display = ("vacante", "perfil", "estado", "actualizada")
     list_filter = ("estado",)
     search_fields = ("vacante__titulo", "vacante__empresa")
 

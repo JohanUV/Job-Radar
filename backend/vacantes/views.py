@@ -7,10 +7,18 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Evaluacion, PerfilBusqueda, Vacante
+from .models import (
+    BorradorCarta,
+    Evaluacion,
+    HistorialEstado,
+    PerfilBusqueda,
+    Postulacion,
+    Vacante,
+)
 from .serializers import (
     EvaluacionSerializer,
     PerfilSerializer,
+    PostulacionSerializer,
     VacanteIngestSerializer,
     VacanteListSerializer,
     VacanteSerializer,
@@ -245,3 +253,177 @@ class MejoresView(APIView):
             "total": qs.count(),
             "resultados": EvaluacionSerializer(qs, many=True).data,
         })
+class CartaContextoView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get(self, request, chat_id, vacante_id):
+        if not _clave_valida(request):
+            return Response({"detalle": "API key invalida"}, status=401)
+
+        try:
+            perfil = PerfilBusqueda.objects.get(telegram_chat_id=str(chat_id))
+        except PerfilBusqueda.DoesNotExist:
+            return Response({"detalle": "Perfil no encontrado"}, status=404)
+
+        if not perfil.texto_cv:
+            return Response({"detalle": "El perfil no tiene CV cargado"}, status=400)
+
+        try:
+            vacante = Vacante.objects.get(pk=vacante_id)
+        except Vacante.DoesNotExist:
+            return Response({"detalle": "Vacante no encontrada"}, status=404)
+
+        existente = BorradorCarta.objects.filter(vacante=vacante, perfil=perfil).first()
+
+        return Response({
+            "perfil_id": perfil.id,
+            "nombre": perfil.nombre,
+            "texto_cv": perfil.texto_cv,
+            "vacante": {
+                "id": vacante.id,
+                "titulo": vacante.titulo,
+                "empresa": vacante.empresa,
+                "ubicacion": vacante.ubicacion,
+                "url": vacante.url,
+                "descripcion": vacante.descripcion[:4000],
+            },
+            "carta_existente": existente.texto if existente else "",
+        })
+
+
+class CartasIngestView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        if not _clave_valida(request):
+            return Response({"detalle": "API key invalida"}, status=401)
+
+        datos = json.loads(request.body.decode("utf-8"))
+        try:
+            carta, creada = BorradorCarta.objects.update_or_create(
+                vacante_id=int(datos["vacante"]),
+                perfil_id=int(datos["perfil"]),
+                defaults={
+                    "texto": datos["texto"][:8000],
+                    "modelo": datos.get("modelo", "")[:80],
+                },
+            )
+        except (KeyError, ValueError, TypeError):
+            return Response({"detalle": "Faltan campos: vacante, perfil, texto"}, status=400)
+
+        return Response({"id": carta.id, "creada": creada}, status=201)
+
+
+class PostulacionesListView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get(self, request, chat_id):
+        try:
+            perfil = PerfilBusqueda.objects.get(telegram_chat_id=str(chat_id))
+        except PerfilBusqueda.DoesNotExist:
+            return Response({"detalle": "Perfil no encontrado"}, status=404)
+
+        qs = Postulacion.objects.filter(perfil=perfil).select_related("vacante")
+
+        return Response({
+            "perfil_id": perfil.id,
+            "total": qs.count(),
+            "resultados": PostulacionSerializer(qs, many=True).data,
+        })
+
+
+class PostulacionesCreateView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        if not _clave_valida(request):
+            return Response({"detalle": "API key invalida"}, status=401)
+
+        try:
+            datos = json.loads(request.body.decode("utf-8"))
+        except Exception:
+            return Response({"detalle": "El cuerpo no es JSON valido"}, status=400)
+
+        chat_id = str(datos.get("telegram_chat_id", "")).strip()
+        if not chat_id:
+            return Response({"detalle": "Falta telegram_chat_id"}, status=400)
+
+        try:
+            perfil = PerfilBusqueda.objects.get(telegram_chat_id=chat_id)
+        except PerfilBusqueda.DoesNotExist:
+            return Response({"detalle": "Perfil no encontrado"}, status=404)
+
+        try:
+            vacante = Vacante.objects.get(pk=int(datos["vacante"]))
+        except (KeyError, ValueError, TypeError):
+            return Response({"detalle": "Falta vacante"}, status=400)
+        except Vacante.DoesNotExist:
+            return Response({"detalle": "Vacante no encontrada"}, status=404)
+
+        estado = datos.get("estado", Postulacion.Estado.GUARDADA)
+        if estado not in Postulacion.Estado.values:
+            return Response({"detalle": "Estado invalido"}, status=400)
+
+        postulacion, creada = Postulacion.objects.get_or_create(
+            vacante=vacante,
+            perfil=perfil,
+            defaults={"estado": estado, "notas": datos.get("notas", "")},
+        )
+
+        return Response(
+            PostulacionSerializer(postulacion).data,
+            status=201 if creada else 200,
+        )
+
+
+class PostulacionDetailView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def patch(self, request, pk):
+        if not _clave_valida(request):
+            return Response({"detalle": "API key invalida"}, status=401)
+
+        try:
+            postulacion = Postulacion.objects.get(pk=pk)
+        except Postulacion.DoesNotExist:
+            return Response({"detalle": "No encontrada"}, status=404)
+
+        try:
+            datos = json.loads(request.body.decode("utf-8"))
+        except Exception:
+            return Response({"detalle": "El cuerpo no es JSON valido"}, status=400)
+
+        if "estado" in datos:
+            estado = datos["estado"]
+            if estado not in Postulacion.Estado.values:
+                return Response({"detalle": "Estado invalido"}, status=400)
+            if estado != postulacion.estado:
+                HistorialEstado.objects.create(
+                    postulacion=postulacion,
+                    estado_anterior=postulacion.estado,
+                    estado_nuevo=estado,
+                )
+                postulacion.estado = estado
+
+        if "notas" in datos:
+            postulacion.notas = str(datos["notas"])
+
+        postulacion.save()
+        return Response(PostulacionSerializer(postulacion).data)
+
+    def delete(self, request, pk):
+        if not _clave_valida(request):
+            return Response({"detalle": "API key invalida"}, status=401)
+
+        try:
+            postulacion = Postulacion.objects.get(pk=pk)
+        except Postulacion.DoesNotExist:
+            return Response({"detalle": "No encontrada"}, status=404)
+
+        postulacion.delete()
+        return Response(status=204)

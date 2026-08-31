@@ -17,8 +17,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 import os
 from dotenv import load_dotenv
-
-load_dotenv(BASE_DIR.parent / ".env")
+load_dotenv(BASE_DIR / ".env")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
@@ -142,3 +141,7 @@ MAILERS = {
 
 
 CORS_ALLOWED_ORIGINS = ["http://localhost:5173"]
+
+from corsheaders.defaults import default_headers
+
+CORS_ALLOW_HEADERS = [*default_headers, "x-api-key"]

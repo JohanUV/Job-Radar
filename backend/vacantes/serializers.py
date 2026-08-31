@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Evaluacion, PerfilBusqueda, Vacante
+from .models import Evaluacion, PerfilBusqueda, Postulacion, Vacante
 
 
 class VacanteIngestSerializer(serializers.ModelSerializer):
@@ -33,6 +33,20 @@ class PerfilSerializer(serializers.ModelSerializer):
         fields = [
             "id", "nombre", "telegram_chat_id", "palabras_clave",
             "ubicacion", "activo",
+        ]
+
+
+class PostulacionSerializer(serializers.ModelSerializer):
+    titulo = serializers.CharField(source="vacante.titulo", read_only=True)
+    empresa = serializers.CharField(source="vacante.empresa", read_only=True)
+    url = serializers.CharField(source="vacante.url", read_only=True)
+    fuente = serializers.CharField(source="vacante.fuente", read_only=True)
+
+    class Meta:
+        model = Postulacion
+        fields = [
+            "id", "vacante", "titulo", "empresa", "url", "fuente",
+            "estado", "notas", "creada", "actualizada",
         ]
 
 
