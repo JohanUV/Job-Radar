@@ -108,7 +108,9 @@ Kanban board for application tracking:
 
 ![Kanban board](docs/tablero.png)
 
-<!-- screenshot: Telegram bot conversation -->
+Telegram bot:
+
+![Telegram bot](docs/bot.png)
 
 ## Running it locally
 
