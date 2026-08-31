@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { obtenerVacantes } from "./api";
+import { crearPostulacion, obtenerVacantes } from "./api";
 import "./App.css";
 import DetalleVacante from "./DetalleVacante";
+import Tablero from "./Tablero";
 
 export default function App() {
+  const [vista, setVista] = useState("vacantes");
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -12,6 +14,15 @@ export default function App() {
   const [busqueda, setBusqueda] = useState("");
   const [fuente, setFuente] = useState("");
   const [seleccionada, setSeleccionada] = useState(null);
+  const [guardadas, setGuardadas] = useState({});
+
+  function guardarEnTablero(e, vacanteId) {
+    e.stopPropagation();
+    setGuardadas((g) => ({ ...g, [vacanteId]: "..." }));
+    crearPostulacion(vacanteId)
+      .then(() => setGuardadas((g) => ({ ...g, [vacanteId]: "ok" })))
+      .catch(() => setGuardadas((g) => ({ ...g, [vacanteId]: "error" })));
+  }
 
   useEffect(() => {
     setCargando(true);
@@ -29,12 +40,32 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className={vista === "tablero" ? "app ancha" : "app"}>
       <header>
         <h1>Radar de empleos</h1>
-        {datos && <p className="total">{datos.total} vacantes registradas</p>}
+        {vista === "vacantes" && datos && (
+          <p className="total">{datos.total} vacantes registradas</p>
+        )}
+        <nav className="vistas">
+          <button
+            className={vista === "vacantes" ? "activa" : ""}
+            onClick={() => setVista("vacantes")}
+          >
+            Vacantes
+          </button>
+          <button
+            className={vista === "tablero" ? "activa" : ""}
+            onClick={() => setVista("tablero")}
+          >
+            Tablero
+          </button>
+        </nav>
       </header>
 
+      {vista === "tablero" && <Tablero />}
+
+      {vista === "vacantes" && (
+        <>
       <form className="filtros" onSubmit={buscar}>
         <input
           type="text"
@@ -63,6 +94,17 @@ export default function App() {
         <p className="meta">
           {v.ubicacion} · via {v.fuente}
         </p>
+        <button
+          className="guardar"
+          disabled={guardadas[v.id] === "ok" || guardadas[v.id] === "..."}
+          onClick={(e) => guardarEnTablero(e, v.id)}
+        >
+          {guardadas[v.id] === "ok"
+            ? "En el tablero"
+            : guardadas[v.id] === "error"
+            ? "Error, reintentar"
+            : "Guardar en tablero"}
+        </button>
       </li>
             ))}
           </ul>
@@ -81,6 +123,8 @@ export default function App() {
               Siguiente
             </button>
           </nav>
+        </>
+      )}
         </>
       )}
       {seleccionada && (
