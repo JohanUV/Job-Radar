@@ -1,0 +1,809 @@
+{
+  "name": "bot-telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {
+          "download": true
+        }
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -416,
+        0
+      ],
+      "id": "8c774064-8892-4b68-a3d6-f57e94f8a18b",
+      "name": "Telegram Trigger",
+      "webhookId": "71069742-d7e4-4b69-b0d8-27cc23880ce1",
+      "credentials": {
+        "telegramApi": {
+          "id": "zE1gvwzk0xvreShF",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst u = item.json;\nconst msg = u.message || u.edited_message || {};\nconst chatId = msg.chat?.id;\nconst texto = (msg.text || msg.caption || '').trim();\nconst doc = msg.document || null;\n\nconst permitidos = [1792767565];\n\nlet intent = 'desconocido';\nlet arg = '';\n\nif (!permitidos.includes(chatId)) {\n  intent = 'no_autorizado';\n} else if (doc) {\n  intent = doc.mime_type === 'application/pdf' ? 'cv' : 'mime_malo';\n} else if (texto.startsWith('/')) {\n  const partes = texto.split(' ');\n  const cmd = partes[0].split('@')[0].toLowerCase();\n  arg = partes.slice(1).join(' ').trim();\n  if (['/start', '/ayuda', '/help'].includes(cmd)) intent = 'ayuda';\n  else if (cmd === '/mejores') intent = 'mejores';\n  else if (cmd === '/buscar') intent = arg ? 'buscar' : 'ayuda';\n  else if (cmd === '/carta') {\n    const n = parseInt(arg, 10);\n    if (Number.isInteger(n) && n > 0) { intent = 'carta'; arg = String(n); }\n    else intent = 'desconocido';\n  }\n  else intent = 'desconocido';\n} else if (texto) {\n  intent = 'buscar';\n  arg = texto;\n}\n\nreturn [{\n  json: { intent, arg, chat_id: chatId, nombre: msg.from?.first_name || '', archivo: doc?.file_name || '' },\n  binary: item.binary\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        0
+      ],
+      "id": "508d2e8d-3f47-4a24-a001-cb3f196348cc",
+      "name": "Router"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Router').first().json.chat_id }}",
+        "text": "={{ $json.texto }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "disable_notification": false,
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        -16
+      ],
+      "id": "8e03f818-b12f-4dc5-8dab-ca34ed1e6176",
+      "name": "Responder",
+      "webhookId": "c8e2de89-f30a-46eb-8ac5-7f1b05e245c5",
+      "credentials": {
+        "telegramApi": {
+          "id": "zE1gvwzk0xvreShF",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "ayuda",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "737f8057-e9b4-4021-968d-bb89e89ed6eb"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ayuda"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "4341ebda-c7c6-4bff-adc0-17946a4bfaa2",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "mejores",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "mejores"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "92a9ae21-0615-4c2e-93d7-fc0756c5131f",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "buscar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "buscar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "2ffbb3d3-9ceb-4643-9593-2e6345a29667",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "cv",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cv"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "892e045d-0f6a-49b9-9b0d-365b5b733c8d",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "no_autorizado",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "no_autorizado"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "8253ac4f-af31-4eb5-bf4d-9845a02ee886",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "carta",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "carta"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        16,
+        -64
+      ],
+      "id": "8d46857a-d10f-43be-80d8-063a0f721271",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4b6cff9d-c02a-4b84-952a-20251d91d9af",
+              "name": "texto",
+              "value": "={{ `👋 Hola ${$('Router').first().json.nombre}, soy tu radar de vacantes.\\n\\nEsto es lo que puedo hacer:\\n\\n📄 Mándame tu CV en PDF y lo guardo para evaluar las ofertas contra tu perfil.\\n\\n🎯 /mejores — las vacantes que mejor encajan contigo.\\n\\n🔎 /buscar python remoto — busca en todo lo que tengo guardado. También funciona si escribes el texto sin el comando.\\n\\nReviso nuevas ofertas cada 6 horas y te aviso por aquí.` }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        544,
+        -400
+      ],
+      "id": "f3379aad-4592-4037-bfe4-0f3ecc34d770",
+      "name": "Texto ayuda"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3323bbae-2488-49e8-80c5-efff09637571",
+              "name": "Texto ",
+              "value": "Este bot es privado. Si te interesa el proyecto, el código está en github.com/JohanUV/Job-Radar",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        544,
+        128
+      ],
+      "id": "54ae0043-6d1b-428b-9b57-2e7cc7bd1f62",
+      "name": "Texto no autorizado"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "07c23112-f776-4211-b7b3-5bf0b2064d86",
+              "name": "texto",
+              "value": "={{ `No entendí eso 🤔\\n\\nUsa /mejores, /buscar &lt;texto&gt;, o mándame tu CV en PDF.\\nEscribe /ayuda para ver todo.` }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        544,
+        416
+      ],
+      "id": "1ade04e8-74d8-4912-a590-d63f0f9d6d63",
+      "name": "Texto no etendido"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        368,
+        -16
+      ],
+      "id": "8540b819-da40-4be5-8eb1-97e856d0fca8",
+      "name": "Extraer PDF"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://172.17.0.1:8000/api/perfil/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ telegram_chat_id: String($('Router').first().json.chat_id), nombre: $('Router').first().json.nombre, texto_cv: $json.text }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        544,
+        -16
+      ],
+      "id": "d50613e9-14b3-4eb4-8ec1-485d4960eb2b",
+      "name": "Guardar CV",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2V7tcKRtt1iNr5ii",
+          "name": "Api Radar Django"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c5dbd23b-f087-412a-8a29-922820f71492",
+              "name": "texto",
+              "value": "={{ `✅ CV recibido y guardado.\\n\\nLeí ${$json.cv_caracteres} caracteres de ${$('Router').first().json.archivo}.\\n\\nEn la próxima corrida del evaluador lo cruzo con las vacantes pendientes. Pídeme /mejores en un rato.` }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        688,
+        -16
+      ],
+      "id": "0c3c61c4-3fed-442a-8299-e209fc6d69b9",
+      "name": "Texto CV guardado"
+    },
+    {
+      "parameters": {
+        "url": "=http://172.17.0.1:8000/api/perfil/{{ $json.chat_id }}/mejores/?min=1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        480,
+        -272
+      ],
+      "id": "cabff080-dd1b-4926-b483-aa3f2b2bb805",
+      "name": "Pedir mejores"
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $('Router').first().json;\nconst datos = $input.first().json;\nconst lista = datos.resultados || [];\n\nconst esc = (s = '') => String(s)\n  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n\nif (!lista.length) {\n  return [{ json: {\n    chat_id: r.chat_id,\n    texto: 'Todavía no tengo vacantes evaluadas para ti.\\n\\nSi ya mandaste tu CV, espera a la próxima corrida del evaluador (cada 6 horas). Si no, mándamelo en PDF.'\n  }}];\n}\n\nconst bloques = lista.slice(0, 5).map((ev, i) => {\n  const razones = Array.isArray(ev.razones) ? ev.razones.slice(0, 2) : [];\n  return [\n    `<b>${i + 1}. ${esc(ev.titulo)}</b> — ${ev.puntuacion}/100`,\n    `${esc(ev.empresa || 'Empresa no indicada')}${ev.ubicacion ? ' · ' + esc(ev.ubicacion) : ''}`,\n    razones.length ? `<i>${esc(razones.join(' · '))}</i>` : null,\n    `<a href=\"${esc(ev.url)}\">Ver vacante</a> · via ${esc(ev.fuente)}`\n  ].filter(Boolean).join('\\n');\n});\n\nlet texto = `🎯 <b>Tus mejores coincidencias</b> (${datos.total} en total)\\n\\n` + bloques.join('\\n\\n');\nif (texto.length > 4000) texto = texto.slice(0, 3950) + '\\n\\n…recortado.';\n\nreturn [{ json: { chat_id: r.chat_id, texto } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        -272
+      ],
+      "id": "efc1d92b-89a4-4869-90b7-b85d81768309",
+      "name": "Formatear mejores"
+    },
+    {
+      "parameters": {
+        "url": "=http://172.17.0.1:8000/api/vacantes/?q={{ encodeURIComponent($json.arg) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        480,
+        -144
+      ],
+      "id": "c789fa3d-aaeb-4cd0-8428-a5b8b4d9f60b",
+      "name": "Buscar Vacantes"
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $('Router').first().json;\nconst datos = $input.first().json;\nconst lista = datos.resultados || [];\n\nconst esc = (s = '') => String(s)\n  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n\nif (!lista.length) {\n  return [{ json: {\n    chat_id: r.chat_id,\n    texto: `No encontré nada para <b>${esc(r.arg)}</b>.\\n\\nPrueba con un término más corto o en inglés — la mayoría de las ofertas están en ese idioma.`\n  }}];\n}\n\nconst bloques = lista.slice(0, 5).map((v, i) => [\n  `<b>${i + 1}. ${esc(v.titulo)}</b>`,\n  `${esc(v.empresa || 'Empresa no indicada')}${v.ubicacion ? ' · ' + esc(v.ubicacion) : ''}`,\n  `<a href=\"${esc(v.url)}\">Ver vacante</a> · via ${esc(v.fuente)}`\n].join('\\n'));\n\nconst extra = datos.total > 5 ? `\\n\\nMostrando 5 de ${datos.total}. Afina la búsqueda para ver otras.` : '';\nlet texto = `🔎 <b>Resultados para \"${esc(r.arg)}\"</b>\\n\\n` + bloques.join('\\n\\n') + extra;\nif (texto.length > 4000) texto = texto.slice(0, 3950) + '\\n\\n…recortado.';\n\nreturn [{ json: { chat_id: r.chat_id, texto } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        -144
+      ],
+      "id": "179537b2-df85-4da3-89fa-4ac2ca3cf117",
+      "name": "Formatear busqueda"
+    },
+    {
+      "parameters": {
+        "url": "=http://172.17.0.1:8000/api/perfil/{{ $json.chat_id }}/carta/{{ $json.arg }}/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        272
+      ],
+      "id": "0c5bdc80-c6e4-449d-8432-3a1c72949116",
+      "name": "Contexto carta",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2V7tcKRtt1iNr5ii",
+          "name": "Api Radar Django"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const c = $json;\nconst v = c.vacante;\n\nconst cv = (c.texto_cv || '').slice(0, 6000);\nconst desc = (v.descripcion || '')\n  .replace(/<[^>]*>/g, ' ')\n  .replace(/&[a-z]+;/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim()\n  .slice(0, 3000);\n\nconst prompt = `Eres un redactor profesional de cartas de presentación.\n\nCV DEL CANDIDATO:\n${cv}\n\nVACANTE:\nPuesto: ${v.titulo}\nEmpresa: ${v.empresa}\nUbicación: ${v.ubicacion}\nDescripción: ${desc}\n\nEscribe una carta de presentación siguiendo estas reglas:\n- Máximo 250 palabras.\n- Redáctala en el mismo idioma en que está escrita la descripción de la vacante.\n- Usa ÚNICAMENTE datos que aparezcan en el CV. No inventes experiencia, años, empresas ni tecnologías.\n- Menciona dos o tres logros concretos del CV que conecten con lo que pide la vacante.\n- Empieza con un saludo breve y una primera frase que afirme algo concreto del candidato.\n- Si el CV no encaja del todo, no lo menciones en el primer párrafo: recógelo en una sola frase hacia el final, apoyándote en lo transferible.\n- Escribe en párrafos corridos. No uses listas, viñetas ni guiones al inicio de línea.\n- Tono profesional y directo, sin frases hechas de plantilla. No uses markdown.\n- Devuelve solo el texto de la carta, sin encabezados, sin asunto y sin comentarios tuyos.`;\n\nreturn [{\n  json: {\n    perfil_id: c.perfil_id,\n    vacante_id: v.id,\n    body: {\n      contents: [{ parts: [{ text: prompt }] }],\n      generationConfig: { temperature: 0.7, maxOutputTokens: 900 }\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        272
+      ],
+      "id": "c639832f-a72b-4dc3-ad97-919361b2da38",
+      "name": "Preparar Prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json.body) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        480,
+        272
+      ],
+      "id": "509aadf0-c0eb-4d95-9eae-b18703cd3fe7",
+      "name": "Gemini Carta",
+      "retryOnFail": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Txaz6WVBxdWG89NW",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $json;\nconst texto = r?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';\nconst prep = $('Preparar Prompt').first().json;\n\nif (!texto) {\n  throw new Error('Gemini no devolvió texto: ' + JSON.stringify(r).slice(0, 300));\n}\n\nreturn [{ json: {\n  vacante: prep.vacante_id,\n  perfil: prep.perfil_id,\n  texto,\n  modelo: 'gemini-3.5-flash-lite'\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        272
+      ],
+      "id": "3336ec78-c9b3-4a5c-8f23-d44de6d49b71",
+      "name": "Parsear Carta"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://172.17.0.1:8000/api/cartas/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        736,
+        272
+      ],
+      "id": "22a38049-ec0c-417f-8b01-0018f28e3a3e",
+      "name": "Guardar carta",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2V7tcKRtt1iNr5ii",
+          "name": "Api Radar Django"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const prep = $('Preparar Prompt').first().json;\nconst bruto = $('Parsear Carta').first().json.texto;\n\nconst limpio = bruto.replace(/\\*+/g, '');\n\nconst esc = limpio\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;');\n\nconst texto = `📄 <b>Borrador de carta — vacante ${prep.vacante_id}</b>\\n\\n${esc.slice(0, 3800)}`;\n\nreturn [{ json: { texto } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        272
+      ],
+      "id": "e18aa5bc-6f7f-4217-800b-6709933dbaa2",
+      "name": "Texto carta"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Texto ayuda",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pedir mejores",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buscar Vacantes",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extraer PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Texto no autorizado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Contexto carta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Texto no etendido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Texto ayuda": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Texto no autorizado": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Texto no etendido": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer PDF": {
+      "main": [
+        [
+          {
+            "node": "Guardar CV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar CV": {
+      "main": [
+        [
+          {
+            "node": "Texto CV guardado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Texto CV guardado": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pedir mejores": {
+      "main": [
+        [
+          {
+            "node": "Formatear mejores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear mejores": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Vacantes": {
+      "main": [
+        [
+          {
+            "node": "Formatear busqueda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear busqueda": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contexto carta": {
+      "main": [
+        [
+          {
+            "node": "Preparar Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Prompt": {
+      "main": [
+        [
+          {
+            "node": "Gemini Carta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Carta": {
+      "main": [
+        [
+          {
+            "node": "Parsear Carta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear Carta": {
+      "main": [
+        [
+          {
+            "node": "Guardar carta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar carta": {
+      "main": [
+        [
+          {
+            "node": "Texto carta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Texto carta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "1b47892c-925a-4a10-8020-3821ee276c07",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7f363f4874e757cfa9f825921d3ca1721b35e00416de57e90b18bea7eaf1892d"
+  },
+  "nodeGroups": [],
+  "id": "7HM29qudike0Vn96",
+  "tags": []
+}
