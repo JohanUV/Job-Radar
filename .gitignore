@@ -8,3 +8,4 @@ node_modules/
 .env
 .env
 backend/.env
+deploy/prod-ingest-key.txt
