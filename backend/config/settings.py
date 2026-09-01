@@ -96,6 +96,23 @@ DATABASES = {
     }
 }
 
+# Proveedores gestionados (Neon, Render) entregan la conexion como una sola URL
+_db_url = os.getenv("DATABASE_URL")
+if _db_url:
+    from urllib.parse import parse_qs, urlparse
+
+    _p = urlparse(_db_url)
+    _q = parse_qs(_p.query)
+    DATABASES["default"].update({
+        "NAME": _p.path.lstrip("/"),
+        "USER": _p.username,
+        "PASSWORD": _p.password,
+        "HOST": _p.hostname,
+        "PORT": str(_p.port or 5432),
+    })
+    if "sslmode" in _q:
+        DATABASES["default"]["OPTIONS"] = {"sslmode": _q["sslmode"][0]}
+
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
 

@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: job-radar-api
+    runtime: docker
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DATABASE_URL
+        sync: false # pegar aqui la connection string de Neon (con ?sslmode=require)
+      - key: INGEST_API_KEY
+        sync: false # la misma que usan n8n y el frontend
+      - key: DJANGO_ALLOWED_HOSTS
+        value: job-radar-api.onrender.com
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://johanuv.github.io
