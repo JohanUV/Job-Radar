@@ -1,4 +1,4 @@
-const BASE = "http://127.0.0.1:8000/api";
+const BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000/api";
 
 export async function obtenerVacantes({ pagina = 1, q = "", fuente = "" } = {}) {
   const params = new URLSearchParams({ pagina });

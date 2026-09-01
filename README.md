@@ -151,6 +151,11 @@ Import from file) and create the Telegram and Gemini credentials — they are
 not included in the exports. The Telegram trigger needs `WEBHOOK_URL` to point
 to a public tunnel (I use cloudflared) so Telegram can reach n8n.
 
+For production there is a separate `docker-compose.prod.yml` that runs
+everything behind Caddy (gunicorn, the built SPA served same-origin, and a
+named Cloudflare tunnel via the `tunnel` profile). Full deployment notes will
+land here once the project is live.
+
 ## Known limitations and what I'd do differently
 
 - **Single user by design.** Everything hangs off a Telegram chat id; there is
